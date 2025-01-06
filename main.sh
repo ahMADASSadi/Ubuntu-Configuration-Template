@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/bin/zsh
 
 set -e
 set -u
 set -o pipefail
 
+# Define directories and log files
 BASE_DIR="$(pwd)"
 LOG_DIR="$BASE_DIR/logs"
 CONF_DIR="$BASE_DIR/options.conf"
@@ -14,7 +15,6 @@ if [ -s "$LOG_DIR/logs.log" ]; then
     TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
     LOG_FILE="$LOG_DIR/logs_$TIMESTAMP.log"
 else
-    echo "Initial Log" >&2
     LOG_FILE="$LOG_DIR/logs.log"
 fi
 
@@ -22,22 +22,63 @@ touch "$LOG_FILE"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-echo "Created at: $(date +"%Y-%m-%d_%H-%M-%S")"
+# Function to log and display messages
+log_and_show() {
+    local message="$1"
+    echo "$message" 
+}
+
+log_and_show "Script started at: $(date +'%Y-%m-%d_%H-%M-%S')"
 
 install_package() {
     local package="$1"
-    echo "Installing $package..."
+    log_and_show "Installing $package..."
     if ! sudo apt-get install -y "$package"; then
-        echo "Failed to install $package"
+        log_and_show "Failed to install $package"
         exit 1
     fi
-    echo "$package installed"
+    log_and_show "$package installed successfully."
 }
 
-echo "Updating system..."
-# sudo apt-get update && sudo apt-get update -y
+log_and_show "Updating system..."
+# # sudo apt-get update && sudo apt-get upgrade -y
 
-if [ -f "$CONF_DIR" ]; then
+# Prompt for packages
+log_and_show "Enter the packages you want to install (separated by spaces):"
+read -r packages < /dev/tty
+
+# Install the packages
+for package in $packages; do
+    log_and_show "Processing package: $package"
+    install_package "$package"
+done
+
+# Check if Git is installed
+if command -v git >/dev/null 2>&1; then
+    log_and_show "Git is already installed."
+    log_and_show "Do you want to configure Git? (yes/no)"
+    read -r configure_git < /dev/tty
+
+    if [[ "$configure_git" == "yes" ]]; then
+        log_and_show "Enter your Git user name:"
+        read -r git_user_name < /dev/tty
+        log_and_show "Enter your Git user email:"
+        read -r git_user_email < /dev/tty
+
+        git config --global user.name "$git_user_name"
+        git config --global user.email "$git_user_email"
+
+        log_and_show "Git has been configured with:"
+        log_and_show "User Name: $git_user_name"
+        log_and_show "User Email: $git_user_email"
+    else
+        log_and_show "Git configuration skipped."
+    fi
+else
+    log_and_show "Git is not installed. Would you like to install it? (yes/no)"
+    read -r install_git < /dev/tty
+    if [[ "$install_git" == "yes" ]]; then
+        if [ -f "$CONF_DIR" ]; then
     source "$CONF_DIR"
 else
     echo "packages.conf file not found!" >&2
@@ -49,3 +90,11 @@ for package in "${packages[@]}"; do
     echo "- $package"
     install_package "$package"
 done
+
+        log_and_show "Git has been installed. You can run the script again to configure Git."
+    else
+        log_and_show "Skipping Git installation."
+    fi
+fi
+
+log_and_show "Script completed successfully."
