@@ -22,79 +22,83 @@ touch "$LOG_FILE"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-# Function to log and display messages
-log_and_show() {
-    local message="$1"
-    echo "$message" 
-}
-
-log_and_show "Script started at: $(date +'%Y-%m-%d_%H-%M-%S')"
+echo "Created at: $(date +"%Y-%m-%d_%H-%M-%S")"
 
 install_package() {
     local package="$1"
-    log_and_show "Installing $package..."
+    echo "Installing $package..."
     if ! sudo apt-get install -y "$package"; then
-        log_and_show "Failed to install $package"
+        echo "Failed to install $package"
         exit 1
     fi
-    log_and_show "$package installed successfully."
+    echo "$package installed"
 }
 
-log_and_show "Updating system..."
-# # sudo apt-get update && sudo apt-get upgrade -y
-
-# Prompt for packages
-log_and_show "Enter the packages you want to install (separated by spaces):"
-read -r packages < /dev/tty
-
-# Install the packages
-for package in $packages; do
-    log_and_show "Processing package: $package"
-    install_package "$package"
-done
-
 # Check if Git is installed
-if command -v git >/dev/null 2>&1; then
-    log_and_show "Git is already installed."
-    log_and_show "Do you want to configure Git? (yes/no)"
-    read -r configure_git < /dev/tty
+# if command -v git >/dev/null 2>&1; then
+#     log_and_show "Git is already installed."
+#     log_and_show "Do you want to configure Git? (yes/no)"
+#     read -r configure_git </dev/tty
 
-    if [[ "$configure_git" == "yes" ]]; then
-        log_and_show "Enter your Git user name:"
-        read -r git_user_name < /dev/tty
-        log_and_show "Enter your Git user email:"
-        read -r git_user_email < /dev/tty
+#     if [[ "$configure_git" == "yes" ]]; then
+#         log_and_show "Enter your Git user name:"
+#         read -r git_user_name </dev/tty
+#         log_and_show "Enter your Git user email:"
+#         read -r git_user_email </dev/tty
 
-        git config --global user.name "$git_user_name"
-        git config --global user.email "$git_user_email"
+#         git config --global user.name "$git_user_name"
+#         git config --global user.email "$git_user_email"
 
-        log_and_show "Git has been configured with:"
-        log_and_show "User Name: $git_user_name"
-        log_and_show "User Email: $git_user_email"
-    else
-        log_and_show "Git configuration skipped."
-    fi
-else
-    log_and_show "Git is not installed. Would you like to install it? (yes/no)"
-    read -r install_git < /dev/tty
-    if [[ "$install_git" == "yes" ]]; then
-        if [ -f "$CONF_DIR" ]; then
+#         log_and_show "Git has been configured with:"
+#         log_and_show "User Name: $git_user_name"
+#         log_and_show "User Email: $git_user_email"
+#     else
+#         log_and_show "Git configuration skipped."
+#     fi
+# else
+#     log_and_show "Git is not installed. Would you like to install it? (yes/no)"
+#     read -r install_git </dev/tty
+#     if [[ "$install_git" == "yes" ]]; then
+#         log_and_show "Git has been installed. You can run the script again to configure Git."
+#     else
+#         log_and_show "Skipping Git installation."
+#     fi
+# fi
+
+if [ -f "$CONF_DIR" ]; then
     source "$CONF_DIR"
 else
     echo "packages.conf file not found!" >&2
     exit 1
 fi
 
+echo "Updating system..."
+# sudo apt-get update && sudo apt-get upgrade -y
+
 echo "Installing desired packages:"
 for package in "${packages[@]}"; do
-    echo "- $package"
+    echo "- Installing $package"
     install_package "$package"
-done
 
-        log_and_show "Git has been installed. You can run the script again to configure Git."
-    else
-        log_and_show "Skipping Git installation."
+    # Check if the current package is "git"
+    if [[ "$package" == "git" ]]; then
+        echo "Do you want to (re)configure Git? (yes/no)"
+        read -r configure_git </dev/tty
+
+        if [[ "$configure_git" == "yes" ]]; then
+            echo "Enter your Git user name:"
+            read -r git_user_name </dev/tty
+            echo "Enter your Git user email:"
+            read -r git_user_email </dev/tty
+
+            git config --global user.name "$git_user_name"
+            git config --global user.email "$git_user_email"
+
+            echo "Git has been configured with:"
+            echo "User Name: $git_user_name"
+            echo "User Email: $git_user_email"
+        else
+            echo "Git configuration skipped."
+        fi
     fi
-fi
-
-log_and_show "Script completed successfully."
+done
