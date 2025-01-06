@@ -6,6 +6,8 @@ set -o pipefail
 
 BASE_DIR="$(pwd)"
 LOG_DIR="$BASE_DIR/logs"
+CONF_DIR="$BASE_DIR/options.conf"
+
 mkdir -p "$LOG_DIR"
 
 if [ -s "$LOG_DIR/logs.log" ]; then
@@ -16,14 +18,13 @@ else
     LOG_FILE="$LOG_DIR/logs.log"
 fi
 
-# Redirect both stdout and stderr to the log file
 touch "$LOG_FILE"
 
-exec > "$LOG_FILE" 2>&1
+exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "Created at: $(date +"%Y-%m-%d_%H-%M-%S")"
 
-install_package(){
+install_package() {
     local package="$1"
     echo "Installing $package..."
     if ! sudo apt-get install -y "$package"; then
@@ -34,6 +35,17 @@ install_package(){
 }
 
 echo "Updating system..."
-sudo apt-get update && sudo apt-get update -y
+# sudo apt-get update && sudo apt-get update -y
 
-install_package "git"
+if [ -f "$CONF_DIR" ]; then
+    source "$CONF_DIR"
+else
+    echo "packages.conf file not found!" >&2
+    exit 1
+fi
+
+echo "Installing desired packages:"
+for package in "${packages[@]}"; do
+    echo "- $package"
+    install_package "$package"
+done
