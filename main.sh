@@ -4,6 +4,25 @@ set -e
 set -u
 set -o pipefail
 
+# Define ANSI color codes
+COLOR_RED='\033[0;31m'
+COLOR_GREEN='\033[0;32m'
+COLOR_YELLOW='\033[0;33m'
+COLOR_BLUE='\033[0;34m'
+COLOR_RESET='\033[0m'
+
+# Function to colorize text
+colorize() {
+    local color="$1"
+    local text="$2"
+    echo -e "${color}${text}${COLOR_RESET}"
+}
+
+# Function to strip ANSI color codes
+strip_colors() {
+    sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g"
+}
+
 # Define directories and log files
 BASE_DIR="$(pwd)"
 LOG_DIR="$BASE_DIR/logs"
@@ -18,83 +37,83 @@ else
     LOG_FILE="$LOG_DIR/logs.log"
 fi
 
-exec > >(tee -a "$LOG_FILE") 2>&1
+# Redirect all output to both the terminal and the log file
+# Strip colors for the log file
+exec > >(tee >(strip_colors >>"$LOG_FILE")) 2>&1
 
-echo "Created at: $(date +"%Y-%m-%d_%H-%M-%S")"
+echo -e "$(colorize $COLOR_BLUE "Created at: $(date +"%Y-%m-%d_%H-%M-%S")")"
 
 install_package() {
     local package="$1"
     local manager="$2"
 
     if [[ "$manager" == "apt" ]]; then
-        echo "Installing $package..."
+        echo -e "$(colorize $COLOR_BLUE "Installing $package...")"
         if ! sudo apt-get install -y "$package"; then
-            echo "Failed to install $package"
+            echo -e "$(colorize $COLOR_RED "Failed to install $package")"
             exit 1
         fi
     elif [[ "$manager" == "snap" ]]; then
-        echo "Installing $package..."
+        echo -e "$(colorize $COLOR_BLUE "Installing $package...")"
         if ! sudo snap install "$package"; then
-            echo "Failed to install $package"
+            echo -e "$(colorize $COLOR_RED "Failed to install $package")"
             exit 1
         fi
     fi
-    echo "$package installed"
+    echo -e "$(colorize $COLOR_GREEN "$package installed")"
 }
 
 git_config() {
     local package="$1"
     if [[ "$package" == "git" ]]; then
         if [ -t 0 ]; then
-            echo "Do you want to (re)configure Git? (yes/no)"
+            echo -e "$(colorize $COLOR_YELLOW "Do you want to (re)configure Git? (yes/no)")"
             read -r configure_git </dev/tty
         else
             echo "Not running in an interactive shell. Skipping Git configuration."
             return
         fi
-        read -r configure_git </dev/tty
 
         if [[ "$configure_git" == "yes" ]]; then
-            echo "Enter your Git user name:"
+            echo -e "$(colorize $COLOR_YELLOW "Enter your Git user name:")"
             read -r git_user_name </dev/tty
-            echo "Enter your Git user email:"
+            echo -e "$(colorize $COLOR_YELLOW "Enter your Git user email:")"
             read -r git_user_email </dev/tty
 
             git config --global user.name "$git_user_name"
             git config --global user.email "$git_user_email"
 
-            echo "Git has been configured with:"
-            echo "User Name: $git_user_name"
-            echo "User Email: $git_user_email"
+            echo -e "$(colorize $COLOR_GREEN "Git has been configured with:")"
+            echo -e "$(colorize $COLOR_GREEN "User Name: $git_user_name")"
+            echo -e "$(colorize $COLOR_GREEN "User Email: $git_user_email")"
         else
-            echo "Git configuration skipped."
+            echo -e "$(colorize $COLOR_YELLOW "Git configuration skipped.")"
         fi
     fi
 }
 
 if [ -f "$CONF_DIR" ]; then
     if ! source "$CONF_DIR"; then
-        echo "Error: Failed to source $CONF_DIR. Check the file for syntax errors." >&2
+        echo -e "$(colorize $COLOR_RED "Error: Failed to source $CONF_DIR. Check the file for syntax errors.")" >&2
         exit 1
     fi
 else
-    echo "Error: $CONF_DIR file not found!" >&2
+    echo -e "$(colorize $COLOR_RED "Error: $CONF_DIR file not found!")" >&2
     exit 1
 fi
 
-echo "Updating system..."
+echo -e "$(colorize $COLOR_BLUE "Updating system...")"
 # sudo apt-get update && sudo apt-get upgrade -y
 
-echo "Installing Official packages:"
+echo -e "$(colorize $COLOR_BLUE "Installing Official packages:")"
 for package in "${apt_apps[@]}"; do
-    echo "- Installing $package"
+    echo -e "$(colorize $COLOR_BLUE "- Installing $package")"
     install_package "$package" "apt"
     git_config "$package"
 done
 
-echo "Installing Snap packages:"
+echo -e "$(colorize $COLOR_BLUE "Installing Snap packages:")"
 for package in "${snap_apps[@]}"; do
-    echo "- Installing $package"
+    echo -e "$(colorize $COLOR_BLUE "- Installing $package")"
     install_package "$package" "snap"
 done
-
