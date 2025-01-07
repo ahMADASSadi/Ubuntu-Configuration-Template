@@ -7,7 +7,8 @@ set -o pipefail
 
 COLOR_RED='\033[0;31m'
 COLOR_GREEN='\033[0;32m'
-COLOR_GREEN_BOLD='\033[1;32m'
+COLOR_GREEN_BOLD='\033[4;32m'
+COLOR_GREEN_BACKGROUND='\e[42m'
 COLOR_YELLOW='\033[0;33m'
 COLOR_BLUE='\033[1;34m'
 COLOR_PURPLE='\033[0;35m'  
@@ -150,4 +151,4 @@ for package_manager in "apt" "snap"; do
 done
 
 
-printf "$(colorize $COLOR_GREEN_BOLD "\nInstallation completed successfully!")"
+printf "$(colorize $COLOR_GREEN_BACKGROUND "\nInstallation completed successfully!")"
