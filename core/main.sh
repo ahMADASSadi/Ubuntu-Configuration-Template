@@ -4,31 +4,35 @@ set -e
 set -u
 set -o pipefail
 
-# Define ANSI color codes
+
 COLOR_RED='\033[0;31m'
 COLOR_GREEN='\033[0;32m'
 COLOR_YELLOW='\033[0;33m'
-COLOR_BLUE='\033[0;34m'
+COLOR_BLUE='\033[1;34m'
+COLOR_PURPLE='\033[0;35m'  
+COLOR_LIGHT_GREEN='\033[0;36m'  
 COLOR_RESET='\033[0m'
 
-# Function to colorize text
+
 colorize() {
     local color="$1"
     local text="$2"
     echo -e "${color}${text}${COLOR_RESET}"
 }
 
-# Function to strip ANSI color codes
+
 strip_colors() {
     sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g"
 }
 
-# Define directories and log files
+
 BASE_DIR="$(pwd)"
-LOG_DIR="$BASE_DIR/logs"
+LOG_DIR="$(dirname "$BASE_DIR")/logs"
 CONF_DIR="$BASE_DIR/options.conf"
 
+
 mkdir -p "$LOG_DIR"
+
 
 if [ -s "$LOG_DIR/logs.log" ]; then
     TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
@@ -37,8 +41,8 @@ else
     LOG_FILE="$LOG_DIR/logs.log"
 fi
 
-# Redirect all output to both the terminal and the log file
-# Strip colors for the log file
+
+
 exec > >(tee >(strip_colors >>"$LOG_FILE")) 2>&1
 
 echo -e "$(colorize $COLOR_BLUE "Created at: $(date +"%Y-%m-%d_%H-%M-%S")")"
@@ -48,13 +52,13 @@ install_package() {
     local manager="$2"
 
     if [[ "$manager" == "apt" ]]; then
-        echo -e "$(colorize $COLOR_BLUE "Installing $package...")"
+        echo -e "$(colorize $COLOR_LIGHT_GREEN " - Installing $package...")"
         if ! sudo apt-get install -y "$package"; then
             echo -e "$(colorize $COLOR_RED "Failed to install $package")"
             exit 1
         fi
     elif [[ "$manager" == "snap" ]]; then
-        echo -e "$(colorize $COLOR_BLUE "Installing $package...")"
+        echo -e "$(colorize $COLOR_LIGHT_GREEN " - Installing $package...")"
         if ! sudo snap install "$package"; then
             echo -e "$(colorize $COLOR_RED "Failed to install $package")"
             exit 1
@@ -107,13 +111,13 @@ echo -e "$(colorize $COLOR_BLUE "Updating system...")"
 
 echo -e "$(colorize $COLOR_BLUE "Installing Official packages:")"
 for package in "${apt_apps[@]}"; do
-    echo -e "$(colorize $COLOR_BLUE "- Installing $package")"
+    echo -e "$(colorize $COLOR_PURPLE "Installing $package")"
     install_package "$package" "apt"
     git_config "$package"
 done
 
 echo -e "$(colorize $COLOR_BLUE "Installing Snap packages:")"
 for package in "${snap_apps[@]}"; do
-    echo -e "$(colorize $COLOR_BLUE "- Installing $package")"
+    echo -e "$(colorize $COLOR_PURPLE "Installing $package")"
     install_package "$package" "snap"
 done
