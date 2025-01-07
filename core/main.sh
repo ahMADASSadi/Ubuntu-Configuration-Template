@@ -7,6 +7,7 @@ set -o pipefail
 
 COLOR_RED='\033[0;31m'
 COLOR_GREEN='\033[0;32m'
+COLOR_GREEN_BOLD='\033[1;32m'
 COLOR_YELLOW='\033[0;33m'
 COLOR_BLUE='\033[1;34m'
 COLOR_PURPLE='\033[0;35m'  
@@ -27,8 +28,9 @@ strip_colors() {
 
 
 BASE_DIR="$(pwd)"
-LOG_DIR="$(dirname "$BASE_DIR")/logs"
-CONF_DIR="$BASE_DIR/options.conf"
+echo "$BASE_DIR"
+LOG_DIR="$BASE_DIR/logs"
+CONF_DIR="$BASE_DIR/core/options.conf"
 
 
 mkdir -p "$LOG_DIR"
@@ -109,15 +111,43 @@ fi
 echo -e "$(colorize $COLOR_BLUE "Updating system...")"
 # sudo apt-get update && sudo apt-get upgrade -y
 
-echo -e "$(colorize $COLOR_BLUE "Installing Official packages:")"
-for package in "${apt_apps[@]}"; do
-    echo -e "$(colorize $COLOR_PURPLE "Installing $package")"
-    install_package "$package" "apt"
-    git_config "$package"
+# echo -e "$(colorize $COLOR_BLUE "Installing Official packages:")"
+# for package in "${apt_apps[@]}"; do
+#     echo -e "$(colorize $COLOR_PURPLE "Installing $package")"
+#     install_package "$package" "apt"
+#     git_config "$package"
+# done
+
+# echo -e "$(colorize $COLOR_BLUE "Installing Snap packages:")"
+# for package in "${snap_apps[@]}"; do
+#     echo -e "$(colorize $COLOR_PURPLE "Installing $package")"
+#     install_package "$package" "snap"
+# done
+
+
+for package_manager in "apt" "snap"; do
+    case $package_manager in
+        apt)
+            packages=("${apt_apps[@]}")
+            color=$COLOR_PURPLE
+            ;;
+        snap)
+            packages=("${snap_apps[@]}")
+            color=$COLOR_PURPLE
+            ;;
+    esac
+
+    echo -e "$(colorize $COLOR_BLUE "Installing $package_manager packages:")"
+    for package in "${packages[@]}"; do
+        echo -e "$(colorize $color "Installing $package")"
+        install_package "$package" "$package_manager"
+        
+        # Only run git_config for apt packages (assuming git is installed via apt)
+        if [[ "$package_manager" == "apt" && "$package" == "git" ]]; then
+            git_config "$package"
+        fi
+    done
 done
 
-echo -e "$(colorize $COLOR_BLUE "Installing Snap packages:")"
-for package in "${snap_apps[@]}"; do
-    echo -e "$(colorize $COLOR_PURPLE "Installing $package")"
-    install_package "$package" "snap"
-done
+
+printf "$(colorize $COLOR_GREEN_BOLD "\nInstallation completed successfully!")"
