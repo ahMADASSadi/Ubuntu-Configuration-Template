@@ -15,33 +15,34 @@ install_package() {
     local manager="$2"
 
     if [[ "$manager" == "apt" ]]; then
-        echo -e "$(colorize $COLOR_LIGHT_GREEN " - Installing $package...")"
+        echo -e "$(process_colorize $COLOR_LIGHT_GREEN_BACKGROUND " - Installing $package...")"
         if ! sudo apt-get install -y "$package"; then
             echo -e "$(colorize $COLOR_RED "Failed to install $package")"
             exit 1
         fi
     elif [[ "$manager" == "snap" ]]; then
-        echo -e "$(colorize $COLOR_LIGHT_GREEN " - Installing $package...")"
+        echo -e "$(process_colorize $COLOR_LIGHT_GREEN_BACKGROUND " - Installing $package...")"
         if ! sudo snap install "$package"; then
             echo -e "$(colorize $COLOR_RED "Failed to install $package")"
             exit 1
         fi
     fi
-    echo -e "$(colorize $COLOR_GREEN "$package installed")"
+    echo -e "$(result_colorize $COLOR_GREEN_BACKGROUND "$package installed")"
+    echo
 }
 
 git_config() {
     local package="$1"
     if [[ "$package" == "git" ]]; then
         if [ -t 0 ]; then
-            echo -e "$(colorize $COLOR_YELLOW "Do you want to (re)configure Git? (yes/no)")"
+            echo -e "$(colorize $COLOR_YELLOW "Do you want to (re)configure Git? (y/n)")"
             read -r configure_git </dev/tty
         else
             echo "Not running in an interactive shell. Skipping Git configuration."
             return
         fi
 
-        if [[ "$configure_git" == "yes" ]]; then
+        if [[ "$configure_git" == "y" ]]; then
             echo -e "$(colorize $COLOR_YELLOW "Enter your Git user name:")"
             read -r git_user_name </dev/tty
             echo -e "$(colorize $COLOR_YELLOW "Enter your Git user email:")"
@@ -54,32 +55,36 @@ git_config() {
             echo -e "$(colorize $COLOR_GREEN "User Name: $git_user_name")"
             echo -e "$(colorize $COLOR_GREEN "User Email: $git_user_email")"
         else
-            echo -e "$(colorize $COLOR_YELLOW "Git configuration skipped.")"
+            echo -e "$(result_colorize $COLOR_YELLOW_HIGH_INTENCITY_BACKGROUND "Git configuration skipped.")"
+            echo
         fi
     fi
 }
 
 
 
-echo -e "$(colorize $COLOR_BLUE "Updating system...")"
-# sudo apt-get update && sudo apt-get upgrade -y
+echo -e "$(process_colorize $COLOR_BLUE_BACKGROUND 'Updating system...')"
+sudo apt-get update && sudo apt-get upgrade -y
+echo -e "$(result_colorize $COLOR_GREEN_BACKGROUND 'System updated')"
+echo
 
 
 for package_manager in "apt" "snap"; do
     case $package_manager in
         apt)
             packages=("${APT_APPS[@]}")
-            color=$COLOR_PURPLE
+            color=$COLOR_PURPLE_BACKGROUND
             ;;
         snap)
             packages=("${SNAP_APPS[@]}")
-            color=$COLOR_PURPLE
+            color=$COLOR_PURPLE_BACKGROUND
             ;;
     esac
 
-    echo -e "$(colorize $COLOR_BLUE "Installing $package_manager packages:")"
+    echo -e "$(result_colorize $COLOR_BLUE_BACKGROUND "Installing $package_manager packages:")"
+    echo
     for package in "${packages[@]}"; do
-        echo -e "$(colorize $color "Installing $package")"
+        echo -e "$(process_colorize $color "Installing $package")"
         install_package "$package" "$package_manager"
         
         # Only run git_config for apt packages (assuming git is installed via apt)
@@ -89,5 +94,4 @@ for package_manager in "apt" "snap"; do
     done
 done
 
-
-echo -e "$(colorize $COLOR_GREEN_BACKGROUND "\nInstallation completed successfully!")"
+echo -e "$(result_colorize $COLOR_GREEN_BACKGROUND 'Installation completed successfully!')"
