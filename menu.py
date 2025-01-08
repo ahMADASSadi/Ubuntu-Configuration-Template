@@ -15,6 +15,7 @@ def display_menu():
     print(logo)
     print("Welcome to the Ubuntu Configuration Tool(UCT)")
     print("Please choose an option:")
+    print("0: See and Update the configuration file")
     print("1: Install apps")
     print("2: Test ping of the vpn servers")
 
@@ -29,8 +30,10 @@ def get_user_choice() -> int:
     """
     while True:
         try:
-            choice = int(input("Enter your choice (1 or 2): "))
-            if choice in [1, 2]:
+            choice = (input("Enter your choice: "))
+            if choice in [0, 1, 2, 3]:
+                return choice
+            elif choice == "q":
                 return choice
             else:
                 print("Invalid choice. Please enter 1 or 2.")
