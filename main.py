@@ -2,7 +2,7 @@ import subprocess
 import sys
 import time
 
-from menu import display_menu, get_user_choice
+from src.menu import display_menu, get_user_choice
 
 
 def run_shell_script(script_path):
@@ -59,13 +59,13 @@ def main(choice):
     """
     Handles menu options based on user choice.
     """
-    CONF_DIR = "./core/options.conf"
+    CONF_DIR = "./src/configurations/utc.conf"
     if choice == 0:
         view_or_edit_config(CONF_DIR)
     elif choice == 1:
-        run_shell_script("./core/install.sh")
+        run_shell_script("./scripts/install.sh")
     elif choice == 2:
-        run_shell_script("./core/ping.sh")
+        run_shell_script("./scripts/ping.sh")
     elif choice == 3:
         print("Option 3 is not implemented.")
     else:
