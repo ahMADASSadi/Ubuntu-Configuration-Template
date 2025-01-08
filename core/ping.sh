@@ -3,91 +3,49 @@
 source "$(dirname "$0")/utils.sh"
 
 LOG_DIR="$(pwd)/logs/vpn"
+
 setup_logging "$LOG_DIR"
 
-echo -e "$(colorize $COLOR_BLUE "Starting VPN latency tests...")"
+echo -e "$(process_colorize $COLOR_BLUE_BACKGROUND "Starting VPN latency tests...")"
+echo
 
 if [ -z "$OPENVPN_PATH" ]; then
-    echo -e "$(colorize $COLOR_RED "Error: OPENVPN_PATH is not set in the .conf file!")"
+    echo -e "$(result_colorize $COLOR_RED_BACKGROUND "Error: OPENVPN_PATH is not set in the .conf file!")"
+    exit 1
+
+elif [ ! -d "$OPENVPN_PATH" ]; then
+    echo -e "$(result_colorize $COLOR_RED_BACKGROUND "Error: Directory $OPENVPN_PATH not found!")"
+    exit 1
+
+elif [ -z "$(find "$OPENVPN_PATH" -name '*.ovpn' -print -quit)" ]; then
+    echo -e "$(result_colorize $COLOR_RED_BACKGROUND "Error: No .ovpn files found in $OPENVPN_PATH!")"
     exit 1
 fi
 
-if [ ! -d "$OPENVPN_PATH" ]; then
-    echo -e "$(colorize $COLOR_RED "Error: Directory $OPENVPN_PATH not found!")"
-    exit 1
-fi
+for CONFIG_FILE in "$OPENVPN_PATH"/*.ovpn; do
+    echo -e "$(process_colorize $COLOR_BLUE_BACKGROUND "Processing $CONFIG_FILE...")"
 
-if [ -z "$(find "$OPENVPN_PATH" -name '*.ovpn' -print -quit)" ]; then
-    echo -e "$(colorize $COLOR_RED "Error: No .ovpn files found in $OPENVPN_PATH!")"
-    exit 1
-fi
+    # Extract the remote server address from the OpenVPN configuration file
+    REMOTE_SERVER=$(grep -E '^remote\s+' "$CONFIG_FILE" | awk '{print $2}')
 
-get_remote_server() {
-    grep -m 1 "remote " "$1" | awk '{print $2}'
-}
-
-test_latency() {
-    local server=$(get_remote_server "$1")
-    
-    if [ -z "$server" ]; then
-        echo "ERROR|$1|Could not find remote server in config"
-        return
+    # Check if the remote server address was found
+    if [ -z "$REMOTE_SERVER" ]; then
+        echo "  Remote server address not found in $CONFIG_FILE."
+        continue
     fi
 
-    if ! ping -c 3 -W 2 "$server" >/dev/null 2>&1; then
-        echo "ERROR|$1|Could not ping server (DNS resolution or network issue)"
-        return
-    fi
+    # Ping the remote server
+    echo -e "$(process_colorize $COLOR_PURPLE_BACKGROUND "Pinging $CONFIG_FILE...")"
+    ping -c 3 "$REMOTE_SERVER"
 
-    ping_result=$(ping -c 3 -W 1 "$server" 2>/dev/null)
+    # Check the exit status of the ping command
     if [ $? -eq 0 ]; then
-        avg_latency=$(echo "$ping_result" | tail -1 | awk -F "/" '{print $5}')
-        echo "SUCCESS|$1|$avg_latency"
+        echo -e "$(result_colorize $COLOR_LIGHT_GREEN_BACKGROUND "Ping to $CONFIG_FILE was successful.")"
     else
-        echo "ERROR|$1|Ping failed (timeout or other error)"
+        echo -e "$(result_colorize $COLOR_RED_BACKGROUND "Ping to $CONFIG_FILE failed.")"
     fi
-}
 
-max_parallel=${1:-1}
-current_jobs=0
-temp_dir=$(mktemp -d)
-trap 'rm -rf "$temp_dir"' EXIT
+    echo ""
+done
 
-echo "Testing VPN configs in $OPENVPN_PATH..."
-echo "----------------------------------------"
-
-# Use process substitution to avoid subshell issues
-while read -r config; do
-    if [ "$current_jobs" -ge "$max_parallel" ]; then
-        wait -n
-        current_jobs=$((current_jobs - 1))
-    fi
-    test_latency "$config" > "$temp_dir/$(basename "$config").result" &
-    current_jobs=$((current_jobs + 1))
-done < <(find "$OPENVPN_PATH" -name "*.ovpn" | head -n 1)
-
-wait
-
-echo -e "\nResults (sorted by latency):"
-echo "----------------------------------------"
-
-while IFS='|' read -r type conf lat; do
-    echo "Config: $(basename "$conf")"
-    echo "Latency: ${lat}ms"
-    echo "----------------------------------------"
-done < <(find "$temp_dir" -name "*.result" -exec cat {} \; | grep "^SUCCESS" | sort -t'|' -k3 -n)
-
-while IFS='|' read -r type conf err; do
-    echo "Config: $(basename "$conf")"
-    echo "Error: $err"
-    echo "----------------------------------------"
-done < <(find "$temp_dir" -name "*.result" -exec cat {} \; | grep "^ERROR")
-
-success_count=$(find "$temp_dir" -name "*.result" -exec cat {} \; | grep -c "^SUCCESS")
-error_count=$(find "$temp_dir" -name "*.result" -exec cat {} \; | grep -c "^ERROR")
-
-echo -e "\nSummary:"
-echo -e "$(colorize $COLOR_GREEN "Successful tests: $success_count")"
-echo -e "$(colorize $COLOR_RED "Failed tests: $error_count")"
-
-echo -e "$(colorize $COLOR_GREEN "VPN latency tests completed!")" | tee -a "$LOG_FILE"
+echo -e "$(result_colorize $COLOR_GREEN_BACKGROUND "VPN latency tests completed!")"
