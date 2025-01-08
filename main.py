@@ -1,79 +1,93 @@
 import subprocess
 import sys
-from menu import display_menu,get_user_choice
-def main(choise: int):
+import time
+
+from menu import display_menu, get_user_choice
+
+
+def run_shell_script(script_path):
     """
-    Runs the main shell file for installing the set apps.
+    Runs a shell script and displays its output in real-time.
     """
-    if choise == 1:
-        try:
-            shell_path = "./core/install.sh"
-            process = subprocess.Popen(
-                ["/bin/bash", shell_path],
-                stdin=sys.stdin,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
+    try:
+        process = subprocess.Popen(
+            ["/bin/bash", script_path],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+            text=True
+        )
+        process.wait()
+    except FileNotFoundError:
+        print(f"Error: Shell script not found at {
+              script_path}", file=sys.stderr)
+    except Exception as e:
+        print(f"An error occurred while running the script: {
+              e}", file=sys.stderr)
 
-            while True:
-                output = process.stdout.readline()
-                if output == "" and process.poll() is not None:
-                    break
-                if output:
-                    print(output.strip())
 
-            stderr = process.stderr.read()
-            if stderr:
-                print(f"Error: {stderr}", file=sys.stderr)
+def view_or_edit_config(conf_path):
+    """
+    Displays the configuration file content and optionally allows editing in nano.
+    """
+    try:
+        # Display the file contents
+        with open(conf_path, "r") as f:
+            config = f.read()
+        subprocess.run(['clear'])
+        print("\n--- Configuration File Contents ---")
+        print(config)
+        print("--- End of File ---\n")
 
-            process.wait()
+        # Ask the user if they want to edit the file
+        user_input = input(
+            "Do you want to edit the file? (yes/no): ").strip().lower()
+        if user_input in ("yes", "y"):
+            subprocess.run(["nano", conf_path], check=True)
+            print("File updated successfully.")
+        else:
+            print("No changes made to the file.")
+    except FileNotFoundError:
+        print(f"Error: Configuration file not found at {
+              conf_path}", file=sys.stderr)
+    except subprocess.CalledProcessError as e:
+        print(f"Error: Failed to open nano: {e}", file=sys.stderr)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
 
-        except FileNotFoundError:
-            print(f"Error: Shell script not found at {
-                shell_path}", file=sys.stderr)
-        except Exception as e:
-            print(f"An error occurred: {e}", file=sys.stderr)
-    elif choise == 2:
-        try:
-            shell_path = "./core/ping.sh"
-            process = subprocess.Popen(
-                ["/bin/bash", shell_path],
-                stdin=sys.stdin,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
 
-            while True:
-                output = process.stdout.readline()
-                if output == "" and process.poll() is not None:
-                    break
-                if output:
-                    print(output.strip())
-
-            stderr = process.stderr.read()
-            if stderr:
-                print(f"Error: {stderr}", file=sys.stderr)
-
-            process.wait()
-
-        except FileNotFoundError:
-            print(f"Error: Shell script not found at {
-                shell_path}", file=sys.stderr)
-        except Exception as e:
-            print(f"An error occurred: {e}", file=sys.stderr)
-    
-    elif choise == 3:
-        pass
+def main(choice):
+    """
+    Handles menu options based on user choice.
+    """
+    CONF_DIR = "./core/options.conf"
+    if choice == 0:
+        view_or_edit_config(CONF_DIR)
+    elif choice == 1:
+        run_shell_script("./core/install.sh")
+    elif choice == 2:
+        run_shell_script("./core/ping.sh")
+    elif choice == 3:
+        print("Option 3 is not implemented.")
+    else:
+        print("Invalid choice. Please try again.")
 
 
 if __name__ == '__main__':
-    display_menu()
-    choice = get_user_choice()
+    while True:
+        subprocess.run(['clear'])
+        display_menu()
+        try:
+            choice = get_user_choice()
+            if not choice == "q":
+                main(choice)
+                input("\nPress Enter to return to the main menu...")
 
-    if not choice in ["q"]:
-        main(choice)
-    else:
-        print("Exiting...")
-        sys.exit(0)
+            else:
+                print("\nExiting...")
+                sys.exit(0)
+        except ValueError:
+            print(
+                "Invalid input. Please enter a number corresponding to the menu options.")
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            sys.exit(0)
