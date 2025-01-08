@@ -1,3 +1,6 @@
 /logs
-/__pycache__
+*__pycache__
 */openvpn
+*.ovpn
+*.crt
+*.pem
