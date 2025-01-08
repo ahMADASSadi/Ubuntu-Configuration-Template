@@ -60,7 +60,7 @@ setup_logging() {
         log_file="$log_dir/logs.log"
     fi
 
-    exec > >(tee >(strip_colors >>"$log_file")) 2>&1
+    # exec > >(tee >(strip_colors >>"$log_file")) 2>&1
 
     echo -e "$(colorize $COLOR_BLUE "Created at: $(date +"%Y-%m-%d_%H-%M-%S")")"
 }
