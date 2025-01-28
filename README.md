@@ -1,6 +1,6 @@
 # Ubuntu-Config-Template
 
-[![Preview](media/image.png)]
+![Preview](media/image.png)
 
 A simple Ubuntu template for automating the installations of the necessary packages and apps.
 
