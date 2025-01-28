@@ -1,7 +1,5 @@
-from colorama import Fore, Style, init as colorama_init
 import os
 
-colorama_init()
 logo = """
  █████  █████   █████████  ███████████                                                                                    
 ░░███  ░░███   ███░░░░░███░█░░░███░░░█                                                                                    
@@ -27,22 +25,29 @@ def center_text(text: str) -> str:
 
 
 def display_menu():
-    """Displays a menu of options to the user."""
-    # Display the logo
-    print(f"{Fore.CYAN}{center_text(logo)}{Style.RESET_ALL}")
-
-    # Display the menu options
+    """
+    Displays a menu of options to the user.
+    """
+    
     menu_text = """
-Welcome to the Ubuntu Configuration Tool
-Please choose an option:
-0: See and Update the configuration file
-1: Install apps
-2: Test ping of the VPN servers
+    Welcome to the Ubuntu Configuration Tool
+    Please choose an option:
+    0: See and Update the configuration file
+    1: Install apps
+    2: Test ping of the VPN servers
 
-q: Exit
-"""
-    print(f"{Fore.MAGENTA}{menu_text}{Style.RESET_ALL}")
-
+    q: Exit
+    """
+    
+    try:
+        from colorama import Fore, Style, init as colorama_init
+        colorama_init()
+        print(f"{Fore.CYAN}{center_text(logo)}{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA}{menu_text}{Style.RESET_ALL}")
+        
+    except ImportError:
+        print(f"{center_text(logo)}")
+        print(f"{menu_text}")
 
 def get_user_choice() -> int:
     """Gets the user's choice from the menu.
