@@ -1,7 +1,5 @@
 import subprocess
 import sys
-import time
-
 from src.menu import display_menu, get_user_choice
 
 
